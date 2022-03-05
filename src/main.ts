@@ -1,32 +1,50 @@
-/**
- * Some predefined delay values (in milliseconds).
- */
-export enum Delays {
-  Short = 500,
-  Medium = 2000,
-  Long = 5000,
-}
+import * as anchor from '@heavy-duty/anchor';
+import {
+  Connection,
+  Keypair,
+  LAMPORTS_PER_SOL,
+  PublicKey,
+} from '@solana/web3.js';
+import { Program } from '@heavy-duty/anchor';
+import { Decidooor, IDL } from './types/decidooor';
+import { createMint } from './utils';
 
-/**
- * Returns a Promise<string> that resolves after a given time.
- *
- * @param {string} name - A name.
- * @param {number=} [delay=Delays.Medium] - A number of milliseconds to delay resolution of the Promise.
- * @returns {Promise<string>}
- */
-function delayedHello(
-  name: string,
-  delay: number = Delays.Medium,
-): Promise<string> {
-  return new Promise((resolve: (value?: string) => void) =>
-    setTimeout(() => resolve(`Hello, ${name}`), delay),
+const main = async () => {
+  const connection = new Connection('http://localhost:8899');
+  const PROGRAM_ID = new PublicKey(
+    'C7EcdBmywF3p1CwMJntzFN81PNyaf92yKZbkseoPck8D',
   );
-}
+  const authority = Keypair.generate();
+  const provider = new anchor.Provider(
+    connection,
+    new anchor.Wallet(authority),
+    {},
+  );
+  const signature = await connection.requestAirdrop(
+    authority.publicKey,
+    5 * LAMPORTS_PER_SOL,
+  );
+  await connection.confirmTransaction(signature);
 
-// Below are examples of using ESLint errors suppression
-// Here it is suppressing a missing return type definition for the greeter function.
+  anchor.setProvider(provider);
+  const program = new Program<Decidooor>(IDL, PROGRAM_ID);
+  const eventKeypair = anchor.web3.Keypair.generate();
+  const eventStateSize = 1000;
+  const eventCapacity = new anchor.BN(200);
+  const eventRedeemDate = new anchor.BN(Math.floor(Date.now() / 1000));
+  const acceptedMintPublicKey = await createMint(program.provider);
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export async function greeter(name: string) {
-  return await delayedHello(name, Delays.Long);
-}
+  await program.methods
+    .createEvent(eventRedeemDate, new anchor.BN(eventCapacity), eventStateSize)
+    .accounts({
+      authority: program.provider.wallet.publicKey,
+      acceptedMint: acceptedMintPublicKey,
+      event: eventKeypair.publicKey,
+    })
+    .signers([eventKeypair])
+    .rpc();
+
+  console.log(`Event created: ${eventKeypair.publicKey.toBase58()}`);
+};
+
+main();

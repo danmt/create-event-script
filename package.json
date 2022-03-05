@@ -6,6 +6,8 @@
     "node": ">= 16.13 <17"
   },
   "devDependencies": {
+    "@solana/buffer-layout": "^4.0.0",
+    "@solana/spl-token": "^0.2.0",
     "@types/jest": "~27.0.2",
     "@types/node": "~16.11.6",
     "@typescript-eslint/eslint-plugin": "~5.7.0",
@@ -33,6 +35,8 @@
   "author": "Jakub Synowiec <jsynowiec@users.noreply.github.com>",
   "license": "Apache-2.0",
   "dependencies": {
+    "@heavy-duty/anchor": "^0.22.1-2",
+    "@solana/web3.js": "^1.36.0",
     "tslib": "~2.3.1"
   },
   "volta": {
